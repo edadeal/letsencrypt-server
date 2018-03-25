@@ -1,0 +1,164 @@
+---
+
+# Install certbot to the virtualenv
+- name: Ensure virtualenv is installed
+  apt:
+    name: python-virtualenv
+    update_cache: yes
+
+- name: repository key
+  apt_key:
+    id: ABF5BD827BD9BF62
+    keyserver: keyserver.ubuntu.com
+
+- name: repository
+  apt_repository:
+    repo: "deb [ arch=amd64 ] http://nginx.org/packages/ubuntu/ {{ ansible_lsb.codename }} nginx"
+    filename: nginx
+    update_cache: yes
+
+- name: install nginx
+  apt:
+    name: nginx
+    update_cache: yes
+
+- name: install python modules
+  pip:
+    name: "{{ item }}"
+    virtualenv: /usr/share/python/certbot
+    virtualenv_python: python2
+    virtualenv_site_packages: no
+  with_items:
+    - certbot
+  when: letsencrypt_server
+
+- name: Create symlink
+  file:
+    src: /usr/share/python/certbot/bin/certbot
+    dest: /usr/bin/certbot
+    mode: 0644
+    force: yes
+    owner: root
+    group: root
+    state: link
+
+- name: Create cron task for certbot
+  cron:
+    name: certbot update
+    weekday: 0
+    minute: 0
+    hour: 3
+    user: root
+    job: "/usr/bin/certbot -q renew"
+    cron_file: certbot-update
+  when: letsencrypt_server
+
+- name: creating /var/www
+  file:
+    path: "/var/www"
+    state: directory
+    mode: 0755
+    owner: root
+    group: root
+
+- name: creating folder for certs
+  file:
+    path: "/etc/letsencrypt/live/"
+    state: directory
+    mode: 0750
+    owner: root
+    group: root
+
+- name: creating folders
+  file:
+    path: "/etc/nginx/{{ item }}"
+    state: directory
+    mode: 0640
+    owner: root
+    group: root
+  with_items:
+    - conf.d
+    - sites-available
+    - sites-enabled
+    - ssl
+    - sites-available/default.d
+
+- name: create dhparam file
+  command: openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
+
+- name: main configuration
+  template:
+    src: nginx.conf
+    dest: "/etc/nginx/nginx.conf"
+    mode: 0640
+    owner: root
+    group: root
+  notify:
+    - reload nginx
+
+- name: default configuration
+  template:
+    src: default.conf
+    dest: "/etc/nginx/sites-available/default.conf"
+    mode: 0640
+    owner: root
+    group: root
+
+- name: Create symlink
+  file:
+    src: "../sites-available/default.conf"
+    dest: "/etc/nginx/sites-enabled/10-default.conf"
+    mode: 0644
+    force: yes
+    owner: root
+    group: root
+    state: link
+  notify:
+    - reload nginx
+
+- name: conf for letsencrypt
+  template:
+    src: letsencrypt-proxy.conf
+    dest: "/etc/nginx/sites-available/default.d/letsencrypt-proxy.conf"
+    mode: 0640
+    owner: root
+    group: root
+  when: nginx_proxy_well_known
+  notify:
+    - reload nginx
+
+- name: conf.d/ssl.conf
+  template:
+    src: ssl.conf
+    dest: "/etc/nginx/conf.d/ssl.conf"
+    mode: 0644
+    owner: root
+    group: root
+  notify:
+    - reload nginx
+
+- name: stub-status configuration
+  template:
+    src: stub-status.conf
+    dest: "/etc/nginx/sites-available/stub-status.conf"
+    mode: 0640
+    owner: root
+    group: root
+
+- name: Create symlink
+  file:
+    src: "../sites-available/stub-status.conf"
+    dest: "/etc/nginx/sites-enabled/99-stub-status.conf"
+    mode: 0644
+    force: yes
+    owner: root
+    group: root
+    state: link
+  notify:
+    - reload nginx
+
+- name: ensure service is started
+  service:
+    name: nginx
+    state: started
+    enabled: yes

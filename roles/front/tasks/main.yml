@@ -1,0 +1,63 @@
+---
+
+- name: Copy configs
+  template:
+    src: "{{ item }}"
+    dest: "/etc/nginx/sites-available/{{ item }}"
+    owner: root
+    group: root
+    mode: 0640
+  with_items:
+    - example.conf
+  notify:
+    - reload nginx
+
+- name: Create symlinks
+  file:
+    src: "../sites-available/{{ item }}"
+    dest: "/etc/nginx/sites-enabled/50-{{ item }}"
+    mode: 0644
+    force: yes
+    owner: root
+    group: root
+    state: link
+  with_items:
+    - example.conf
+  notify:
+    - reload nginx
+
+- name: front nginx/conf.d files
+  template:
+    src: "{{ item }}"
+    dest: "/etc/nginx/conf.d/{{ item }}"
+    owner: root
+    group: root
+    mode: 0640
+  with_items:
+    - example-ssl.conf
+    - proxy.conf
+  notify:
+    - reload nginx
+
+- name: creating cache folders
+  file:
+    path: "/var/cache/nginx/{{ item }}"
+    state: directory
+    mode: 0755
+    owner: nginx
+    group: nginx
+  with_items:
+    - example
+
+- name: Cron task for rsync certs
+  cron:
+    name: rsync certs
+    minute: "*/5"
+    user: root
+    job: "/usr/bin/rsync -zavL --chmod=D0750,F640 --delete rsync://{{ hostvars['letsencrypt-server'].ansible_eth0.ipv4.address }}/cert /etc/letsencrypt/live/"
+    cron_file: rsync-certs
+
+- name: copy incron task
+  template:
+    src: incron
+    dest: "/var/spool/incron/root"

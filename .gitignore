@@ -1,0 +1,17 @@
+# vim files
+*.swo
+*.swp
+*~
+*.pyc
+__pycache__
+
+# ansible retry files
+*.retry
+
+.idea/
+
+ansible.cfg
+env/
+
+.*password*
+.cache/

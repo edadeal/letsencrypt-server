@@ -1,0 +1,7 @@
+---
+
+- name: restart rsync
+  systemd:
+    name: rsync
+    state: restarted
+    enabled: yes

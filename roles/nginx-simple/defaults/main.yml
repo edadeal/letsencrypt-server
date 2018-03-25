@@ -1,0 +1,4 @@
+---
+
+nginx_proxy_well_known: false
+letsencrypt_server: false

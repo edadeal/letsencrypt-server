@@ -1,0 +1,14 @@
+---
+
+- name: Install incron and inotify-tools
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+  with_items:
+    - inotify-tools
+    - incron
+
+- name: copy incron allow
+  template:
+    src: incron.allow
+    dest: "/etc/incron.allow"

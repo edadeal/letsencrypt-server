@@ -1,0 +1,17 @@
+---
+
+- name: Install and configure nginx
+  hosts: front
+  become: yes
+  roles:
+    - front
+  tags:
+    - front
+
+- name: Install letsencrypt-server
+  hosts: letsencrypt
+  become: yes
+  roles:
+    - letsencrypt-server
+  tags:
+    - letsencrypt-server

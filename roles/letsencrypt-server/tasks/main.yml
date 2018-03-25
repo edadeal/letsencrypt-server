@@ -1,0 +1,7 @@
+---
+
+- name: copy rsyncd conf
+  template:
+    src: rsyncd.conf
+    dest: "/etc/rsyncd.conf"
+  notify: restart rsync

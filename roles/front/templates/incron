@@ -1,0 +1,1 @@
+/etc/letsencrypt/live/{{ domain }}/ IN_CREATE,IN_DELETE,IN_MODIFY,IN_MOVED_TO nginx -s reload

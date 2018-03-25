@@ -1,0 +1,5 @@
+---
+
+dependencies:
+  - role: incron
+  - role: nginx-simple
